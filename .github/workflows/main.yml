@@ -1,0 +1,23 @@
+name: Publish Figma Plugin
+on:
+  push:
+    branches: [master, main, release]
+
+jobs:
+  publish_plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Package plugin files
+        run: |
+          cd src
+          zip -r ../plugin.zip *
+
+      - name: Publish Figma Plugin
+        uses: thomas-lowry/figma-plugin-ci@v1.2.0
+        with:
+          figma-token: ${{ secrets.FIGMA_TOKEN }}
+          plugin-id: ${{ secrets.PLUGIN_ID }}
+          file-path: 'plugin.zip'

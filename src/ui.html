@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        button { margin: 10px; padding: 8px; }
+    </style>
+</head>
+<body>
+<button id="create">Create Rectangle</button>
+<button id="get-selection">Get Selection</button>
+<button id="close">Close</button>
+<div id="selection-info"></div>
+
+<script>
+  // Send message to main plugin code
+  document.getElementById('create').addEventListener('click', () => {
+    parent.postMessage({
+      pluginMessage: {
+        type: 'create-rectangle',
+        x: Math.random() * 400,
+        y: Math.random() * 400
+      }
+    }, '*');
+  });
+
+  document.getElementById('get-selection').addEventListener('click', () => {
+    parent.postMessage({ pluginMessage: { type: 'get-selection' } }, '*');
+  });
+
+  document.getElementById('close').addEventListener('click', () => {
+    parent.postMessage({ pluginMessage: { type: 'close' } }, '*');
+  });
+
+  // Listen for messages from main plugin code
+  window.onmessage = (event) => {
+    if (event.data.pluginMessage) {
+      const msg = event.data.pluginMessage;
+      if (msg.type === 'selection-update') {
+        const infoDiv = document.getElementById('selection-info');
+        infoDiv.innerHTML = msg.selection.length
+          ? `Selected: ${msg.selection.map(n => n.name).join(', ')}`
+          : 'No selection';
+      }
+    }
+  };
+</script>
+</body>
+</html>
