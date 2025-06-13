@@ -8,8 +8,10 @@
 <body>
 <button id="create">Create Rectangle</button>
 <button id="get-selection">Get Selection</button>
+<button id="get-variables">Get Variables</button>
 <button id="close">Close</button>
 <div id="selection-info"></div>
+<pre id="variables"></pre>
 
 <script>
   // Send message to main plugin code
@@ -27,6 +29,10 @@
     parent.postMessage({ pluginMessage: { type: 'get-selection' } }, '*');
   });
 
+  document.getElementById('get-variables').addEventListener('click', () => {
+    parent.postMessage({ pluginMessage: { type: 'get-variables' } }, '*');
+  });
+
   document.getElementById('close').addEventListener('click', () => {
     parent.postMessage({ pluginMessage: { type: 'close' } }, '*');
   });
@@ -35,6 +41,19 @@
   window.onmessage = (event) => {
     if (event.data.pluginMessage) {
       const msg = event.data.pluginMessage;
+
+      if (msg.type === 'variables-update') {
+        console.log('Variables updated:', msg.variables);
+        const VariablesDiv = document.getElementById('variables');
+        VariablesDiv.innerHTML = '';
+        msg.variables.forEach(variable => {
+          VariablesDiv.innerHTML += JSON.stringify(variable, null, 2);
+        });
+        msg.collections.forEach(collection => {
+          VariablesDiv.innerHTML += JSON.stringify(collection, null, 2);
+        });
+
+      }
       if (msg.type === 'selection-update') {
         const infoDiv = document.getElementById('selection-info');
         infoDiv.innerHTML = msg.selection.length

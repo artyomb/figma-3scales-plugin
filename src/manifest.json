@@ -1,19 +1,9 @@
 {
-  "name": "My Simple Plugin",
+  "name": "3 Scales",
   "id": "your-unique-plugin-id",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
   "editorType": ["figma", "figjam"],
-  "documentAccess": "dynamic-page",
-  "networkAccess": {
-    "allowedDomains": ["https://api.sampleapis.com/countries/countries"]
-  },
-  "parameters": [
-    {
-      "name": "P1",
-      "key": "p1",
-      "description": "Test parameter 1"
-    }
-  ]
+  "documentAccess": "dynamic-page"
 }
