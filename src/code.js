@@ -1,3 +1,5 @@
+const VariableResolvedDataType = "BOOLEAN" | "COLOR" | "FLOAT" | "STRING";
+
 // For UI mode
 if ( !figma.command ) {
   figma.showUI(__html__, { width: 400, height: 600 });
@@ -8,21 +10,19 @@ if ( !figma.command ) {
       case 'get-variables':
         console.log('get-variables');
 
-
         let collection = (await figma.variables.getLocalVariableCollectionsAsync()).find(c => c.name === "My Collection");
         if (!collection) {
           collection = figma.variables.createVariableCollection("My Collection");
         }
         let all_variables = await figma.variables.getLocalVariablesAsync();
 
-        let newVariable;
-        try {
-            newVariable = figma.variables.createVariable("brandColor", collection, "COLOR");
-        } catch (e) {
-            console.log("all_variables", all_variables);
-            newVariable = all_variables.find(v => v.name === "brandColor" && v.variableCollectionId === collection.id);
-            console.log("newVariable", newVariable);
+        let newVariable = all_variables.find(v => v.name === "group1/brandColor" && v.variableCollectionId === collection.id);
+        if (!newVariable) {
+          newVariable = figma.variables.createVariable("group1/brandColor", collection, "COLOR");
         }
+
+        // newVariable.setPluginData(key: string, value: string)
+
         await newVariable.setValueForMode(collection.modes[0].modeId, { r: 1, g: 0, b: 0 }); // Red in first mode
         // await newVariable.setValueForMode(collection.modes[1].modeId, { r: 0, g: 0, b: 1 }); // Blue in second mode
 

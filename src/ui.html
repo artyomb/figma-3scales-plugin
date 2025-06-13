@@ -3,15 +3,52 @@
 <head>
     <style>
         button { margin: 10px; padding: 8px; }
+        .tab-group { width: 100%; display: flex; border-bottom: 1px solid #ccc; }
+        .tab { flex: 1; padding: 10px; border: none; background: #f0f0f0; cursor: pointer; }
+        .tab:hover { background: #e0e0e0; }
+        .tab.active { background: #fff; border-bottom: 2px solid #000; }
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
-<button id="create">Create Rectangle</button>
-<button id="get-selection">Get Selection</button>
-<button id="get-variables">Get Variables</button>
-<button id="close">Close</button>
-<div id="selection-info"></div>
-<pre id="variables"></pre>
+<div class="tab-group">
+    <button class="tab active" data-tab="colors">Colors</button>
+    <button class="tab" data-tab="spaces">Spaces</button>
+    <button class="tab" data-tab="typography">Typography</button>
+</div>
+<div class="tab-content active" id="colors">
+    <button id="create">Create Rectangle</button>
+    <button id="get-selection">Get Selection</button>
+    <button id="get-variables">Get Variables</button>
+    <button id="close">Close</button>
+    <div id="selection-info"></div>
+    <pre id="variables"></pre>
+</div>
+<div class="tab-content" id="spaces">
+    <h3>Spaces Content</h3>
+    <p>Space tokens and settings will go here</p>
+</div>
+<div class="tab-content" id="typography">
+    <h3>Typography Content</h3>
+    <p>Typography tokens and settings will go here</p>
+</div>
+
+<script>
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            tab.classList.add('active');
+            const tabId = tab.getAttribute('data-tab');
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+</script>
 
 <script>
   // Send message to main plugin code
