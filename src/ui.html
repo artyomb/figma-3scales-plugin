@@ -2,103 +2,663 @@
 <html>
 <head>
     <style>
-        button { margin: 10px; padding: 8px; }
-        .tab-group { width: 100%; display: flex; border-bottom: 1px solid #ccc; }
-        .tab { flex: 1; padding: 10px; border: none; background: #f0f0f0; cursor: pointer; }
-        .tab:hover { background: #e0e0e0; }
-        .tab.active { background: #fff; border-bottom: 2px solid #000; }
-        .tab-content { display: none; padding: 20px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            font-size: 12px;
+        }
+
+        button {
+            margin: 8px 4px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+        }
+        button:hover { background: #f5f5f5; }
+        button:active { background: #e5e5e5; }
+        button.primary {
+            background: #007AFF;
+            color: white;
+            border-color: #007AFF;
+        }
+        button.primary:hover { background: #0056D6; }
+        button.primary:active { background: #004BB8; }
+
+        .tab-group {
+            width: 100%;
+            display: flex;
+            border-bottom: 1px solid #ccc;
+            background: #f8f8f8;
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #f8f8f8;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            transition: background-color 0.2s;
+        }
+        .tab:hover { background: #e8e8e8; }
+        .tab.active {
+            background: #fff;
+            border-bottom: 2px solid #007AFF;
+            color: #007AFF;
+            font-weight: 500;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 16px;
+            min-height: 400px;
+        }
         .tab-content.active { display: block; }
+
+        .button-group {
+            margin: 12px 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 12px;
+        }
+        .button-group:last-child { border-bottom: none; }
+        .button-group h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            color: #333;
+            font-weight: 600;
+        }
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .input-group {
+            margin: 8px 0;
+        }
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+
+        #selection-info,
+        #variables,
+        #design-system-info {
+            margin-top: 12px;
+            padding: 8px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+        }
+
+        #variables {
+            white-space: pre-wrap;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        .status {
+            padding: 8px 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            font-size: 11px;
+            display: none;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
 <div class="tab-group">
-    <button class="tab active" data-tab="colors">Colors</button>
-    <button class="tab" data-tab="spaces">Spaces</button>
-    <button class="tab" data-tab="typography">Typography</button>
+    <button class="tab active" data-tab="design-system">Design System</button>
+    <button class="tab" data-tab="spacing">Spacing</button>
+    <button class="tab" data-tab="colors">Colors</button>
+    <button class="tab" data-tab="variables">Variables</button>
 </div>
-<div class="tab-content active" id="colors">
-    <button id="create">Create Rectangle</button>
-    <button id="get-selection">Get Selection</button>
-    <button id="get-variables">Get Variables</button>
-    <button id="close">Close</button>
+
+<div class="tab-content active" id="design-system">
+    <div class="button-group">
+        <h4>🎨 Complete Design System</h4>
+        <div class="button-row">
+            <button id="create-design-system" class="primary">Create Full Design System</button>
+        </div>
+    </div>
+
+    <div class="button-group">
+        <h4>🚀 Quick Actions</h4>
+        <div class="button-row">
+            <button id="create-golden-spacing">Golden Ratio Spacing</button>
+            <button id="create-brand-colors">Brand Colors</button>
+            <button id="create-semantic-colors">Semantic Colors</button>
+        </div>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div id="design-system-info"></div>
+</div>
+
+<div class="tab-content" id="spacing">
+    <div class="button-group">
+        <h4>📏 Spacing Systems</h4>
+        <div class="input-group">
+            <label for="spacing-path">Collection Path (e.g., "Spacing/golden")</label>
+            <input type="text" id="spacing-path" value="Spacing/golden" placeholder="Collection/subfolder">
+        </div>
+        <div class="input-group">
+            <label for="spacing-base">Base Value (px)</label>
+            <input type="number" id="spacing-base" value="16" placeholder="16" min="1" max="100">
+        </div>
+        <div class="input-group">
+            <label for="spacing-factor">Scale Factor</label>
+            <input type="number" id="spacing-factor" value="1.618" step="0.001" placeholder="1.618" min="1" max="3">
+        </div>
+        <div class="input-group">
+            <label for="spacing-anchor">Anchor Size</label>
+            <select id="spacing-anchor">
+                <option value="3xs">3xs</option>
+                <option value="2xs">2xs</option>
+                <option value="xs">xs</option>
+                <option value="sm">sm</option>
+                <option value="md" selected>md</option>
+                <option value="lg">lg</option>
+                <option value="xl">xl</option>
+                <option value="2xl">2xl</option>
+            </select>
+        </div>
+        <div class="button-row">
+            <button id="create-custom-spacing" class="primary">Create Custom Spacing</button>
+        </div>
+    </div>
+
+    <div class="button-group">
+        <h4>📐 Preset Spacing Systems</h4>
+        <div class="button-row">
+            <button id="spacing-golden">Golden Ratio (1.618)</button>
+            <button id="spacing-major-third">Major Third (1.25)</button>
+            <button id="spacing-perfect-fourth">Perfect Fourth (1.333)</button>
+            <button id="spacing-major-second">Major Second (1.125)</button>
+        </div>
+    </div>
+</div>
+
+<div class="tab-content" id="colors">
+    <div class="button-group">
+        <h4>🎨 Color Tokens</h4>
+        <div class="input-group">
+            <label for="color-path">Collection Path (e.g., "Colors/primary")</label>
+            <input type="text" id="color-path" value="Colors/primary" placeholder="Collection/subfolder">
+        </div>
+        <div class="input-group">
+            <label for="color-name">Color Name</label>
+            <input type="text" id="color-name" value="main" placeholder="main">
+        </div>
+        <div class="input-group">
+            <label for="color-light">Light Mode Color</label>
+            <input type="color" id="color-light" value="#007AFF">
+        </div>
+        <div class="input-group">
+            <label for="color-dark">Dark Mode Color (optional)</label>
+            <input type="color" id="color-dark" value="#0A84FF">
+        </div>
+        <div class="button-row">
+            <button id="create-custom-color" class="primary">Create Color Token</button>
+        </div>
+    </div>
+
+    <div class="button-group">
+        <h4>🌈 Preset Color Palettes</h4>
+        <div class="button-row">
+            <button id="create-ios-colors">iOS System Colors</button>
+            <button id="create-material-colors">Material Design</button>
+            <button id="create-semantic-palette">Semantic Palette</button>
+        </div>
+    </div>
+</div>
+
+<div class="tab-content" id="variables">
+    <div class="button-group">
+        <h4>🔧 Variable Management</h4>
+        <div class="button-row">
+            <button id="get-variables">Refresh Variables</button>
+            <button id="get-selection">Get Selection</button>
+            <button id="create-rectangle">Create Test Rectangle</button>
+        </div>
+    </div>
+
+    <div class="button-group">
+        <h4>⚙️ Plugin Actions</h4>
+        <div class="button-row">
+            <button id="close">Close Plugin</button>
+        </div>
+    </div>
+
     <div id="selection-info"></div>
     <pre id="variables"></pre>
 </div>
-<div class="tab-content" id="spaces">
-    <h3>Spaces Content</h3>
-    <p>Space tokens and settings will go here</p>
-</div>
-<div class="tab-content" id="typography">
-    <h3>Typography Content</h3>
-    <p>Typography tokens and settings will go here</p>
-</div>
 
 <script>
-    const tabs = document.querySelectorAll('.tab');
-    const tabContents = document.querySelectorAll('.tab-content');
+  // Tab functionality
+  var tabs = document.querySelectorAll('.tab');
+  var tabContents = document.querySelectorAll('.tab-content');
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      tabContents.forEach(function(c) { c.classList.remove('active'); });
 
-            tab.classList.add('active');
-            const tabId = tab.getAttribute('data-tab');
-            document.getElementById(tabId).classList.add('active');
-        });
+      tab.classList.add('active');
+      var tabId = tab.getAttribute('data-tab');
+      var targetContent = document.getElementById(tabId);
+      if (targetContent) {
+        targetContent.classList.add('active');
+      }
     });
-</script>
+  });
 
-<script>
-  // Send message to main plugin code
-  document.getElementById('create').addEventListener('click', () => {
-    parent.postMessage({
-      pluginMessage: {
-        type: 'create-rectangle',
+  // Status helper
+  function showStatus(message, type) {
+    type = type || 'success';
+    var status = document.getElementById('status');
+    if (status) {
+      status.textContent = message;
+      status.className = 'status ' + type;
+      status.style.display = 'block';
+      setTimeout(function() {
+        status.style.display = 'none';
+      }, 3000);
+    }
+  }
+
+  // Message sender helper
+  function sendMessage(type, data) {
+    data = data || {};
+    try {
+      parent.postMessage({
+        pluginMessage: Object.assign({ type: type }, data)
+      }, '*');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      showStatus('Error sending message: ' + error.message, 'error');
+    }
+  }
+
+  // Input validation
+  function validateInput(id, min, max) {
+    var input = document.getElementById(id);
+    if (!input) return true;
+
+    var value = parseFloat(input.value);
+    if (isNaN(value) || (min !== undefined && value < min) || (max !== undefined && value > max)) {
+      input.style.borderColor = '#dc3545';
+      return false;
+    }
+    input.style.borderColor = '#ddd';
+    return true;
+  }
+
+  // Design System Tab Events
+  var createDesignSystemBtn = document.getElementById('create-design-system');
+  if (createDesignSystemBtn) {
+    createDesignSystemBtn.addEventListener('click', function() {
+      sendMessage('create-design-system');
+      showStatus('Creating complete design system...', 'info');
+    });
+  }
+
+  var createGoldenSpacingBtn = document.getElementById('create-golden-spacing');
+  if (createGoldenSpacingBtn) {
+    createGoldenSpacingBtn.addEventListener('click', function() {
+      sendMessage('create-golden-spacing');
+      showStatus('Creating golden ratio spacing system...', 'info');
+    });
+  }
+
+  var createBrandColorsBtn = document.getElementById('create-brand-colors');
+  if (createBrandColorsBtn) {
+    createBrandColorsBtn.addEventListener('click', function() {
+      sendMessage('create-brand-colors');
+      showStatus('Creating brand color palette...', 'info');
+    });
+  }
+
+  var createSemanticColorsBtn = document.getElementById('create-semantic-colors');
+  if (createSemanticColorsBtn) {
+    createSemanticColorsBtn.addEventListener('click', function() {
+      sendMessage('create-semantic-colors');
+      showStatus('Creating semantic color palette...', 'info');
+    });
+  }
+
+  // Spacing Tab Events
+  var createCustomSpacingBtn = document.getElementById('create-custom-spacing');
+  if (createCustomSpacingBtn) {
+    createCustomSpacingBtn.addEventListener('click', function() {
+      if (!validateInput('spacing-base', 1, 100) || !validateInput('spacing-factor', 1, 3)) {
+        showStatus('Please check your input values', 'error');
+        return;
+      }
+
+      var path = document.getElementById('spacing-path').value.trim();
+      var base = parseInt(document.getElementById('spacing-base').value);
+      var factor = parseFloat(document.getElementById('spacing-factor').value);
+      var anchor = document.getElementById('spacing-anchor').value;
+
+      if (!path) {
+        showStatus('Please enter a collection path', 'error');
+        return;
+      }
+
+      sendMessage('create-custom-spacing', { path: path, base: base, factor: factor, anchor: anchor });
+      showStatus('Creating spacing system: ' + path, 'info');
+    });
+  }
+
+  // Preset spacing systems
+  var spacingGoldenBtn = document.getElementById('spacing-golden');
+  if (spacingGoldenBtn) {
+    spacingGoldenBtn.addEventListener('click', function() {
+      sendMessage('create-spacing-preset', { name: 'golden', factor: 1.618 });
+      showStatus('Creating golden ratio spacing...', 'info');
+    });
+  }
+
+  var spacingMajorThirdBtn = document.getElementById('spacing-major-third');
+  if (spacingMajorThirdBtn) {
+    spacingMajorThirdBtn.addEventListener('click', function() {
+      sendMessage('create-spacing-preset', { name: 'major-third', factor: 1.25 });
+      showStatus('Creating major third spacing...', 'info');
+    });
+  }
+
+  var spacingPerfectFourthBtn = document.getElementById('spacing-perfect-fourth');
+  if (spacingPerfectFourthBtn) {
+    spacingPerfectFourthBtn.addEventListener('click', function() {
+      sendMessage('create-spacing-preset', { name: 'perfect-fourth', factor: 1.333 });
+      showStatus('Creating perfect fourth spacing...', 'info');
+    });
+  }
+
+  var spacingMajorSecondBtn = document.getElementById('spacing-major-second');
+  if (spacingMajorSecondBtn) {
+    spacingMajorSecondBtn.addEventListener('click', function() {
+      sendMessage('create-spacing-preset', { name: 'major-second', factor: 1.125 });
+      showStatus('Creating major second spacing...', 'info');
+    });
+  }
+
+  // Colors Tab Events
+  var createCustomColorBtn = document.getElementById('create-custom-color');
+  if (createCustomColorBtn) {
+    createCustomColorBtn.addEventListener('click', function() {
+      var path = document.getElementById('color-path').value.trim();
+      var name = document.getElementById('color-name').value.trim();
+      var lightColor = document.getElementById('color-light').value;
+      var darkColor = document.getElementById('color-dark').value;
+
+      if (!path || !name) {
+        showStatus('Please enter both collection path and color name', 'error');
+        return;
+      }
+
+      var colors = darkColor !== lightColor ? [lightColor, darkColor] : [lightColor];
+      sendMessage('create-custom-color', { path: path, name: name, colors: colors });
+      showStatus('Creating color token: ' + path + '/' + name, 'info');
+    });
+  }
+
+  var createIosColorsBtn = document.getElementById('create-ios-colors');
+  if (createIosColorsBtn) {
+    createIosColorsBtn.addEventListener('click', function() {
+      sendMessage('create-color-preset', { preset: 'ios' });
+      showStatus('Creating iOS system colors...', 'info');
+    });
+  }
+
+  var createMaterialColorsBtn = document.getElementById('create-material-colors');
+  if (createMaterialColorsBtn) {
+    createMaterialColorsBtn.addEventListener('click', function() {
+      sendMessage('create-color-preset', { preset: 'material' });
+      showStatus('Creating Material Design colors...', 'info');
+    });
+  }
+
+  var createSemanticPaletteBtn = document.getElementById('create-semantic-palette');
+  if (createSemanticPaletteBtn) {
+    createSemanticPaletteBtn.addEventListener('click', function() {
+      sendMessage('create-color-preset', { preset: 'semantic' });
+      showStatus('Creating semantic color palette...', 'info');
+    });
+  }
+
+  // Variables Tab Events
+  var getVariablesBtn = document.getElementById('get-variables');
+  if (getVariablesBtn) {
+    getVariablesBtn.addEventListener('click', function() {
+      sendMessage('get-variables');
+      showStatus('Refreshing variables...', 'info');
+    });
+  }
+
+  var getSelectionBtn = document.getElementById('get-selection');
+  if (getSelectionBtn) {
+    getSelectionBtn.addEventListener('click', function() {
+      sendMessage('get-selection');
+    });
+  }
+
+  var createRectangleBtn = document.getElementById('create-rectangle');
+  if (createRectangleBtn) {
+    createRectangleBtn.addEventListener('click', function() {
+      sendMessage('create-rectangle', {
         x: Math.random() * 400,
         y: Math.random() * 400
-      }
-    }, '*');
-  });
+      });
+      showStatus('Created test rectangle', 'success');
+    });
+  }
 
-  document.getElementById('get-selection').addEventListener('click', () => {
-    parent.postMessage({ pluginMessage: { type: 'get-selection' } }, '*');
-  });
+  var closeBtn = document.getElementById('close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() {
+      sendMessage('close');
+    });
+  }
 
-  document.getElementById('get-variables').addEventListener('click', () => {
-    parent.postMessage({ pluginMessage: { type: 'get-variables' } }, '*');
-  });
-
-  document.getElementById('close').addEventListener('click', () => {
-    parent.postMessage({ pluginMessage: { type: 'close' } }, '*');
-  });
-
-  // Listen for messages from main plugin code
-  window.onmessage = (event) => {
-    if (event.data.pluginMessage) {
-      const msg = event.data.pluginMessage;
-
-      if (msg.type === 'variables-update') {
-        console.log('Variables updated:', msg.variables);
-        const VariablesDiv = document.getElementById('variables');
-        VariablesDiv.innerHTML = '';
-        msg.variables.forEach(variable => {
-          VariablesDiv.innerHTML += JSON.stringify(variable, null, 2);
-        });
-        msg.collections.forEach(collection => {
-          VariablesDiv.innerHTML += JSON.stringify(collection, null, 2);
-        });
-
-      }
-      if (msg.type === 'selection-update') {
-        const infoDiv = document.getElementById('selection-info');
-        infoDiv.innerHTML = msg.selection.length
-          ? `Selected: ${msg.selection.map(n => n.name).join(', ')}`
-          : 'No selection';
+  // Helper function to safely update element content
+  function updateElement(id, content, isHTML) {
+    var element = document.getElementById(id);
+    if (element) {
+      if (isHTML) {
+        element.innerHTML = content;
+      } else {
+        element.textContent = content;
       }
     }
+  }
+
+  // Helper function to format JSON safely
+  function formatJSON(obj) {
+    try {
+      return JSON.stringify(obj, null, 2);
+    } catch (error) {
+      return 'Error formatting data: ' + error.message;
+    }
+  }
+
+  // Listen for messages from plugin
+  window.onmessage = function(event) {
+    if (!event.data || !event.data.pluginMessage) {
+      return;
+    }
+
+    var msg = event.data.pluginMessage;
+    console.log('Received message:', msg.type, msg);
+
+    try {
+      switch (msg.type) {
+        case 'variables-update':
+          var variablesDiv = document.getElementById('variables');
+          if (variablesDiv) {
+            var content = '';
+
+            if (msg.variables && msg.variables.length > 0) {
+              content += 'Variables (' + msg.variables.length + '):\n';
+              msg.variables.forEach(function(variable) {
+                content += formatJSON(variable) + '\n';
+              });
+            } else {
+              content += 'No variables found\n';
+            }
+
+            if (msg.collections && msg.collections.length > 0) {
+              content += '\nCollections (' + msg.collections.length + '):\n';
+              msg.collections.forEach(function(collection) {
+                content += formatJSON(collection) + '\n';
+              });
+            } else {
+              content += '\nNo collections found\n';
+            }
+
+            variablesDiv.textContent = content;
+          }
+          showStatus('Variables updated successfully', 'success');
+          break;
+
+        case 'design-system-created':
+          showStatus('✅ Design system created successfully!', 'success');
+          var infoDiv = document.getElementById('design-system-info');
+          if (infoDiv) {
+            var collectionsCount = (msg.collections && msg.collections.length) || 0;
+            var variablesCount = (msg.variables && msg.variables.length) || 0;
+
+            infoDiv.innerHTML =
+              '<h4>Created:</h4>' +
+              '<p>Collections: ' + collectionsCount + '</p>' +
+              '<p>Variables: ' + variablesCount + '</p>';
+          }
+          break;
+
+        case 'selection-update':
+          var selectionDiv = document.getElementById('selection-info');
+          if (selectionDiv) {
+            if (msg.selection && msg.selection.length > 0) {
+              var names = msg.selection.map(function(node) { return node.name; });
+              selectionDiv.textContent = 'Selected: ' + names.join(', ');
+            } else {
+              selectionDiv.textContent = 'No selection';
+            }
+          }
+          break;
+
+        case 'error':
+          showStatus('Error: ' + (msg.message || 'Unknown error'), 'error');
+          break;
+
+        case 'success':
+          showStatus(msg.message || 'Operation completed successfully', 'success');
+          break;
+
+        case 'info':
+          showStatus(msg.message || 'Information', 'info');
+          break;
+
+        default:
+          console.warn('Unknown message type:', msg.type);
+          break;
+      }
+    } catch (error) {
+      console.error('Error handling message:', error);
+      showStatus('Error processing response: ' + error.message, 'error');
+    }
   };
+
+  // Initialize the UI
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('UI initialized');
+
+    // Set initial focus to first tab
+    var firstTab = document.querySelector('.tab.active');
+    if (firstTab) {
+      firstTab.focus();
+    }
+
+    // Auto-refresh variables on load
+    setTimeout(function() {
+      var getVariablesBtn = document.getElementById('get-variables');
+      if (getVariablesBtn) {
+        getVariablesBtn.click();
+      }
+    }, 500);
+  });
+
+  // Error handling for the entire script
+  window.onerror = function(message, source, lineno, colno, error) {
+    console.error('Script error:', message, 'at', source, lineno, colno);
+    showStatus('Script error: ' + message, 'error');
+    return false;
+  };
+
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', function(event) {
+    console.error('Unhandled promise rejection:', event.reason);
+    showStatus('Promise error: ' + event.reason, 'error');
+  });
 </script>
 </body>
 </html>
