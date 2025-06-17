@@ -107,9 +107,18 @@
             box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
         }
 
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .input-row .input-group {
+            flex: 1;
+        }
+
         #selection-info,
         #variables,
-        #design-system-info {
+        #design-system-info,
+        #text-styles {
             margin-top: 12px;
             padding: 8px;
             background: #f8f8f8;
@@ -120,7 +129,8 @@
             border: 1px solid #eee;
         }
 
-        #variables {
+        #variables,
+        #text-styles {
             white-space: pre-wrap;
             font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
             font-size: 10px;
@@ -162,6 +172,14 @@
             font-style: italic;
             padding: 20px;
         }
+
+        .preview-text {
+            margin: 8px 0;
+            padding: 8px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
     </style>
 </head>
 <body>
@@ -169,6 +187,7 @@
     <button class="tab active" data-tab="design-system">Design System</button>
     <button class="tab" data-tab="spacing">Spacing</button>
     <button class="tab" data-tab="colors">Colors</button>
+        <button class="tab" data-tab="typography">Typography</button>
     <button class="tab" data-tab="variables">Variables</button>
 </div>
 
@@ -186,6 +205,7 @@
             <button id="create-golden-spacing">Golden Ratio Spacing</button>
             <button id="create-brand-colors">Brand Colors</button>
             <button id="create-semantic-colors">Semantic Colors</button>
+                <button id="create-typography-system">Typography System</button>
         </div>
     </div>
 
@@ -271,6 +291,92 @@
     </div>
 </div>
 
+    <div class="tab-content" id="typography">
+        <div class="button-group">
+            <h4>📝 Typography Scale</h4>
+            <div class="input-group">
+                <label for="typo-name">Scale Name (e.g., "Heading", "Body")</label>
+                <input type="text" id="typo-name" value="Body" placeholder="Body">
+            </div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="typo-base-size">Base Size (px)</label>
+                    <input type="number" id="typo-base-size" value="16" placeholder="16" min="8" max="72">
+                </div>
+                <div class="input-group">
+                    <label for="typo-factor">Scale Factor</label>
+                    <input type="number" id="typo-factor" value="1.25" step="0.01" placeholder="1.25" min="1" max="2">
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="typo-anchor">Anchor Size</label>
+                <select id="typo-anchor">
+                    <option value="xs">xs</option>
+                    <option value="sm">sm</option>
+                    <option value="base" selected>base</option>
+                    <option value="lg">lg</option>
+                    <option value="xl">xl</option>
+                    <option value="2xl">2xl</option>
+                    <option value="3xl">3xl</option>
+                </select>
+            </div>
+            <div class="button-row">
+                <button id="create-custom-typography" class="primary">Create Typography Scale</button>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <h4>✍️ Individual Text Style</h4>
+            <div class="input-group">
+                <label for="text-style-name">Style Name (e.g., "Button/Large")</label>
+                <input type="text" id="text-style-name" value="Button/Large" placeholder="Button/Large">
+            </div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="text-style-size">Font Size (px)</label>
+                    <input type="number" id="text-style-size" value="16" placeholder="16" min="8" max="144">
+                </div>
+                <div class="input-group">
+                    <label for="text-style-weight">Font Weight</label>
+                    <select id="text-style-weight">
+                        <option value="Regular" selected>Regular</option>
+                        <option value="Medium">Medium</option>
+                        <option value="SemiBold">SemiBold</option>
+                        <option value="Bold">Bold</option>
+                    </select>
+                </div>
+            </div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="text-style-line-height">Line Height (%)</label>
+                    <input type="number" id="text-style-line-height" value="140" placeholder="140" min="100" max="300">
+                </div>
+                <div class="input-group">
+                    <label for="text-style-letter-spacing">Letter Spacing (%)</label>
+                    <input type="number" id="text-style-letter-spacing" value="0" placeholder="0" min="-10" max="20" step="0.1">
+                </div>
+            </div>
+            <div class="preview-text" id="text-style-preview">
+                Preview: The quick brown fox jumps over the lazy dog
+            </div>
+            <div class="button-row">
+                <button id="create-text-style" class="primary">Create Text Style</button>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <h4>📚 Preset Typography Systems</h4>
+            <div class="button-row">
+                <button id="typo-modern-scale">Modern Scale</button>
+                <button id="typo-classic-scale">Classic Scale</button>
+                <button id="typo-ui-system">UI System</button>
+                <button id="typo-editorial">Editorial</button>
+            </div>
+        </div>
+
+        <div id="text-styles"></div>
+    </div>
+
 <div class="tab-content" id="variables">
     <div class="button-group">
         <h4>🔧 Variable Management</h4>
@@ -352,6 +458,24 @@
     return true;
   }
 
+        // Typography preview updater
+        function updateTypographyPreview() {
+            var preview = document.getElementById('text-style-preview');
+            var size = document.getElementById('text-style-size').value;
+            var weight = document.getElementById('text-style-weight').value;
+            var lineHeight = document.getElementById('text-style-line-height').value;
+            var letterSpacing = document.getElementById('text-style-letter-spacing').value;
+
+            if (preview) {
+                preview.style.fontSize = size + 'px';
+                preview.style.fontWeight = weight === 'Regular' ? '400' :
+                                          weight === 'Medium' ? '500' :
+                                          weight === 'SemiBold' ? '600' : '700';
+                preview.style.lineHeight = (lineHeight / 100);
+                preview.style.letterSpacing = (letterSpacing / 100) + 'em';
+            }
+        }
+
   // Design System Tab Events
   var createDesignSystemBtn = document.getElementById('create-design-system');
   if (createDesignSystemBtn) {
@@ -384,6 +508,14 @@
       showStatus('Creating semantic color palette...', 'info');
     });
   }
+
+        var createTypographySystemBtn = document.getElementById('create-typography-system');
+        if (createTypographySystemBtn) {
+            createTypographySystemBtn.addEventListener('click', function() {
+                sendMessage('create-typography-system');
+                showStatus('Creating typography system...', 'info');
+            });
+        }
 
   // Spacing Tab Events
   var createCustomSpacingBtn = document.getElementById('create-custom-spacing');
@@ -485,6 +617,111 @@
       showStatus('Creating semantic color palette...', 'info');
     });
   }
+
+        // Typography Tab Events
+        var createCustomTypographyBtn = document.getElementById('create-custom-typography');
+        if (createCustomTypographyBtn) {
+            createCustomTypographyBtn.addEventListener('click', function() {
+                if (!validateInput('typo-base-size', 8, 72) || !validateInput('typo-factor', 1, 2)) {
+                    showStatus('Please check your input values', 'error');
+                    return;
+                }
+
+                var name = document.getElementById('typo-name').value.trim();
+                var baseSize = parseInt(document.getElementById('typo-base-size').value);
+                var factor = parseFloat(document.getElementById('typo-factor').value);
+                var anchor = document.getElementById('typo-anchor').value;
+
+                if (!name) {
+                    showStatus('Please enter a scale name', 'error');
+                    return;
+                }
+
+                sendMessage('create-custom-typography', {
+                    name: name,
+                    baseSize: baseSize,
+                    factor: factor,
+                    anchor: anchor
+                });
+                showStatus('Creating typography scale: ' + name, 'info');
+            });
+        }
+
+        var createTextStyleBtn = document.getElementById('create-text-style');
+        if (createTextStyleBtn) {
+            createTextStyleBtn.addEventListener('click', function() {
+                if (!validateInput('text-style-size', 8, 144) ||
+                    !validateInput('text-style-line-height', 100, 300) ||
+                    !validateInput('text-style-letter-spacing', -10, 20)) {
+                    showStatus('Please check your input values', 'error');
+                    return;
+                }
+
+                var name = document.getElementById('text-style-name').value.trim();
+                var size = parseInt(document.getElementById('text-style-size').value);
+                var weight = document.getElementById('text-style-weight').value;
+                var lineHeight = parseInt(document.getElementById('text-style-line-height').value);
+                var letterSpacing = parseFloat(document.getElementById('text-style-letter-spacing').value);
+
+                if (!name) {
+                    showStatus('Please enter a style name', 'error');
+                    return;
+                }
+
+                var properties = {
+                    fontSize: size,
+                    fontName: { family: "Inter", style: weight },
+                    lineHeight: { unit: "PERCENT", value: lineHeight },
+                    letterSpacing: { unit: "PERCENT", value: letterSpacing }
+                };
+
+                sendMessage('create-text-style', { name: name, properties: properties });
+                showStatus('Creating text style: ' + name, 'info');
+            });
+        }
+
+        // Typography preset systems
+        var typoModernScaleBtn = document.getElementById('typo-modern-scale');
+        if (typoModernScaleBtn) {
+            typoModernScaleBtn.addEventListener('click', function() {
+                sendMessage('create-typography-preset', { preset: 'modern' });
+                showStatus('Creating modern typography scale...', 'info');
+            });
+        }
+
+        var typoClassicScaleBtn = document.getElementById('typo-classic-scale');
+        if (typoClassicScaleBtn) {
+            typoClassicScaleBtn.addEventListener('click', function() {
+                sendMessage('create-typography-preset', { preset: 'classic' });
+                showStatus('Creating classic typography scale...', 'info');
+            });
+        }
+
+        var typoUiSystemBtn = document.getElementById('typo-ui-system');
+        if (typoUiSystemBtn) {
+            typoUiSystemBtn.addEventListener('click', function() {
+                sendMessage('create-typography-preset', { preset: 'ui' });
+                showStatus('Creating UI typography system...', 'info');
+            });
+        }
+
+        var typoEditorialBtn = document.getElementById('typo-editorial');
+        if (typoEditorialBtn) {
+            typoEditorialBtn.addEventListener('click', function() {
+                sendMessage('create-typography-preset', { preset: 'editorial' });
+                showStatus('Creating editorial typography system...', 'info');
+            });
+        }
+
+        // Typography preview updates
+        var typographyInputs = ['text-style-size', 'text-style-weight', 'text-style-line-height', 'text-style-letter-spacing'];
+        typographyInputs.forEach(function(inputId) {
+            var input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('input', updateTypographyPreview);
+                input.addEventListener('change', updateTypographyPreview);
+            }
+        });
 
   // Variables Tab Events
   var getVariablesBtn = document.getElementById('get-variables');

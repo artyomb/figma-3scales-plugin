@@ -191,6 +191,121 @@ const $figma = {
     return builder.build();
   },
 
+  async typographyScale(baseName, baseSize, factor, anchor) {
+    anchor = anchor || "base";
+    const names = ["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl", "5xl"];
+    const anchorIndex = names.indexOf(anchor);
+
+    console.log('Creating typography scale:', baseName, 'with base size:', baseSize);
+
+    const textStyles = [];
+
+    // Load the default font once at the beginning
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      console.log('✓ Default font loaded successfully');
+    } catch (error) {
+      console.warn('Could not load Inter Regular, will try fallbacks for each style');
+    }
+
+    for (let i = 0; i < names.length; i++) {
+      const size = Math.round(baseSize * Math.pow(factor, i - anchorIndex));
+      const styleName = `${baseName}/${names[i]}`;
+
+      try {
+        const textStyle = await this._createTextStyle(styleName, {
+          fontSize: size,
+          fontName: { family: "Inter", style: "Regular" },
+          lineHeight: { unit: "PERCENT", value: 140 }, // 1.4 line height
+          letterSpacing: { unit: "PERCENT", value: 0 }
+        });
+
+        textStyles.push(textStyle);
+        console.log(`✓ Created text style: ${styleName} (${size}px)`);
+      } catch (error) {
+        console.error(`Failed to create text style: ${styleName}`, error);
+        // Continue with other styles even if one fails
+      }
+    }
+
+    return textStyles;
+  },
+
+  async createTextStyle(name, properties) {
+    console.log('Creating text style:', name);
+    return this._createTextStyle(name, properties);
+  },
+
+  // NEW: Typography system with multiple scales
+  async typographySystem(config) {
+    console.log('Creating typography system with', Object.keys(config.scales).length, 'scales');
+
+    // Pre-load all fonts that will be used
+    const fontsToLoad = new Set();
+
+    // Collect fonts from scales (default to Inter Regular)
+    Object.values(config.scales).forEach(function(scaleConfig) {
+      if (scaleConfig.fontName) {
+        fontsToLoad.add(JSON.stringify(scaleConfig.fontName));
+      } else {
+        fontsToLoad.add(JSON.stringify({ family: "Inter", style: "Regular" }));
+      }
+    });
+
+    // Collect fonts from semantic styles
+    if (config.semantic) {
+      Object.values(config.semantic).forEach(function(semanticConfig) {
+        if (semanticConfig.fontName) {
+          fontsToLoad.add(JSON.stringify(semanticConfig.fontName));
+        }
+      });
+    }
+
+    // Load all unique fonts
+    console.log('Pre-loading', fontsToLoad.size, 'unique fonts...');
+    for (const fontJson of fontsToLoad) {
+      const font = JSON.parse(fontJson);
+      try {
+        await figma.loadFontAsync(font);
+        console.log('✓ Pre-loaded font:', font.family, font.style);
+      } catch (error) {
+        console.warn('Could not pre-load font:', font, 'will try fallbacks');
+      }
+    }
+
+    const results = [];
+
+    // Create scales
+    for (const [scaleName, scaleConfig] of Object.entries(config.scales)) {
+      try {
+        const textStyles = await this.typographyScale(
+          scaleName,
+          scaleConfig.baseSize,
+          scaleConfig.factor,
+          scaleConfig.anchor || "base"
+        );
+        results.push({ scale: scaleName, styles: textStyles });
+      } catch (error) {
+        console.error('Failed to create typography scale:', scaleName, error);
+      }
+    }
+
+    // Create semantic text styles if provided
+    if (config.semantic) {
+      for (const [semanticName, semanticConfig] of Object.entries(config.semantic)) {
+        try {
+          const textStyle = await this._createTextStyle(semanticName, semanticConfig);
+          results.push({ scale: 'semantic', styles: [textStyle] });
+          console.log(`✓ Created semantic text style: ${semanticName}`);
+        } catch (error) {
+          console.error('Failed to create semantic text style:', semanticName, error);
+        }
+      }
+    }
+
+    return results;
+  },
+
   batch: function() {
     const operations = Array.prototype.slice.call(arguments);
     return Promise.all(operations);
@@ -223,10 +338,28 @@ const $figma = {
       });
     },
 
+    // NEW: Query text styles
+    async textStyles() {
+      const textStyles = await figma.getLocalTextStylesAsync();
+      return textStyles.map(function(style) {
+        return {
+          id: style.id,
+          name: style.name,
+          fontSize: style.fontSize,
+          fontName: style.fontName,
+          lineHeight: style.lineHeight,
+          letterSpacing: style.letterSpacing,
+          textCase: style.textCase,
+          textDecoration: style.textDecoration
+        };
+      });
+    },
+
     async all() {
       const collections = await this.collections();
       const variables = await this.variables();
-      return { collections: collections, variables: variables };
+      const textStyles = await this.textStyles();
+      return { collections: collections, variables: variables, textStyles: textStyles };
     }
   },
 
@@ -251,6 +384,82 @@ const $figma = {
 
     await variable.setValueForMode(collection.modes[0].modeId, value);
     return variable;
+  },
+
+  async _createTextStyle(name, properties) {
+    const existingStyles = await figma.getLocalTextStylesAsync();
+    let textStyle = existingStyles.find(style => style.name === name);
+
+    if (!textStyle) {
+      console.log('Creating new text style:', name);
+      textStyle = figma.createTextStyle();
+      textStyle.name = name;
+    } else {
+      console.log('Updating existing text style:', name);
+    }
+
+    // Load font FIRST before setting any properties
+    let fontToLoad = { family: "Inter", style: "Regular" }; // Default font
+
+    if (properties.fontName) {
+      fontToLoad = properties.fontName;
+    }
+
+    try {
+      console.log('Loading font:', fontToLoad);
+      await figma.loadFontAsync(fontToLoad);
+      textStyle.fontName = fontToLoad;
+    } catch (error) {
+      console.warn('Could not load font:', fontToLoad, 'trying fallback fonts');
+
+      // Try common fallback fonts
+      const fallbackFonts = [
+        { family: "Inter", style: "Regular" },
+        { family: "Roboto", style: "Regular" },
+        { family: "Arial", style: "Regular" },
+        { family: "Helvetica", style: "Regular" }
+      ];
+
+      let fontLoaded = false;
+      for (const fallback of fallbackFonts) {
+        try {
+          console.log('Trying fallback font:', fallback);
+          await figma.loadFontAsync(fallback);
+          textStyle.fontName = fallback;
+          fontLoaded = true;
+          break;
+        } catch (fallbackError) {
+          console.warn('Fallback font failed:', fallback);
+        }
+      }
+
+      if (!fontLoaded) {
+        throw new Error('Could not load any font. Please ensure Inter, Roboto, Arial, or Helvetica is available.');
+      }
+    }
+
+    // Now set other properties AFTER font is loaded
+    if (properties.fontSize) {
+      textStyle.fontSize = properties.fontSize;
+    }
+
+    if (properties.lineHeight) {
+      textStyle.lineHeight = properties.lineHeight;
+    }
+
+    if (properties.letterSpacing) {
+      textStyle.letterSpacing = properties.letterSpacing;
+    }
+
+    if (properties.textCase) {
+      textStyle.textCase = properties.textCase;
+    }
+
+    if (properties.textDecoration) {
+      textStyle.textDecoration = properties.textDecoration;
+    }
+
+    return textStyle;
   }
 };
 
@@ -300,41 +509,112 @@ const handlers = {
     await $figma.colorToken("error", "Colors/semantic", ["#FF3B30", "#FF453A"]);
     console.log('✓ Semantic error color created');
 
+    console.log('=== Step 3: Creating Typography System ===');
+
+    // Create typography scales
+    await $figma.typographySystem({
+      scales: {
+        "Display": {
+          baseSize: 24,
+          factor: 1.25,
+          anchor: "base"
+        },
+        "Heading": {
+          baseSize: 20,
+          factor: 1.2,
+          anchor: "base"
+        },
+        "Body": {
+          baseSize: 16,
+          factor: 1.125,
+          anchor: "base"
+        },
+        "Caption": {
+          baseSize: 12,
+          factor: 1.1,
+          anchor: "base"
+        }
+      },
+      semantic: {
+        "Hero/Title": {
+          fontSize: 48,
+          fontName: { family: "Inter", style: "Bold" },
+          lineHeight: { unit: "PERCENT", value: 120 },
+          letterSpacing: { unit: "PERCENT", value: -2 }
+        },
+        "Hero/Subtitle": {
+          fontSize: 20,
+          fontName: { family: "Inter", style: "Regular" },
+          lineHeight: { unit: "PERCENT", value: 150 },
+          letterSpacing: { unit: "PERCENT", value: 0 }
+        },
+        "Button/Large": {
+          fontSize: 16,
+          fontName: { family: "Inter", style: "Medium" },
+          lineHeight: { unit: "PIXELS", value: 24 },
+          letterSpacing: { unit: "PERCENT", value: 0 }
+        },
+        "Button/Small": {
+          fontSize: 14,
+          fontName: { family: "Inter", style: "Medium" },
+          lineHeight: { unit: "PIXELS", value: 20 },
+          letterSpacing: { unit: "PERCENT", value: 0 }
+        }
+      }
+    });
+
+    console.log('✓ Typography system created');
+
     // Step 4: Get final state
     const data = await $figma.query.all();
 
     console.log('=== Design System Creation Complete ===');
     console.log('Final collections:', data.collections.length);
     console.log('Final variables:', data.variables.length);
+    console.log('Final text styles:', data.textStyles.length);
 
     // Log collection summary
     data.collections.forEach(function(collection) {
       console.log('✓ Collection:', collection.name, '- Variables:', collection.variables);
     });
 
+    // Log text styles summary
+    const styleGroups = {};
+    data.textStyles.forEach(function(style) {
+      const group = style.name.includes('/') ? style.name.split('/')[0] : 'Other';
+      if (!styleGroups[group]) styleGroups[group] = 0;
+      styleGroups[group]++;
+    });
+
+    Object.entries(styleGroups).forEach(function([group, count]) {
+      console.log('✓ Text Styles:', group, '- Count:', count);
+    });
+
     figma.ui.postMessage({
       type: 'design-system-created',
       collections: data.collections,
-      variables: data.variables
+      variables: data.variables,
+      textStyles: data.textStyles
     });
 
-    figma.notify('✅ Design system created: ' + data.collections.length + ' collections, ' + data.variables.length + ' variables');
+    figma.notify('✅ Design system created: ' + data.collections.length + ' collections, ' + data.variables.length + ' variables, ' + data.textStyles.length + ' text styles');
   },
 
   async getVariables() {
-    console.log('=== Getting Variables ===');
+    console.log('=== Getting Variables and Text Styles ===');
 
     // Refresh cache before querying
     await CollectionCache.refresh();
 
     const data = await $figma.query.all();
 
-    console.log('Variables query complete:', data.variables.length, 'variables in', data.collections.length, 'collections');
+    console.log('Query complete:', data.variables.length, 'variables,', data.textStyles.length, 'text styles in', data.collections.length, 'collections');
 
     figma.ui.postMessage({
       type: 'variables-update',
       collections: data.collections,
-      variables: data.variables
+      variables: data.variables,
+      textStyles: data.textStyles
     });
   },
 
@@ -364,6 +644,129 @@ const handlers = {
     console.log('Creating custom spacing system:', msg.path);
     await $figma.spacingSystem(msg.path, msg.base, msg.factor, msg.anchor);
     figma.notify('✅ Custom spacing system created');
+  },
+
+  async createCustomTypography(msg) {
+    console.log('Creating custom typography scale:', msg.name);
+    await $figma.typographyScale(msg.name, msg.baseSize, msg.factor, msg.anchor);
+    figma.notify('✅ Custom typography scale created');
+  },
+
+  async createTextStyle(msg) {
+    console.log('Creating text style:', msg.name);
+    await $figma.createTextStyle(msg.name, msg.properties);
+    figma.notify('✅ Text style created: ' + msg.name);
+  },
+
+  // NEW: Create typography preset systems
+  async createTypographyPreset(msg) {
+    console.log('Creating typography preset:', msg.preset);
+
+    const presets = {
+      modern: {
+        scales: {
+          "Display": { baseSize: 32, factor: 1.25, anchor: "base" },
+          "Heading": { baseSize: 24, factor: 1.2, anchor: "base" },
+          "Body": { baseSize: 16, factor: 1.125, anchor: "base" },
+          "Caption": { baseSize: 12, factor: 1.1, anchor: "base" }
+        },
+        semantic: {
+          "Hero/Title": {
+            fontSize: 56,
+            fontName: { family: "Inter", style: "Bold" },
+            lineHeight: { unit: "PERCENT", value: 110 },
+            letterSpacing: { unit: "PERCENT", value: -2 }
+          },
+          "Button/Primary": {
+            fontSize: 16,
+            fontName: { family: "Inter", style: "Medium" },
+            lineHeight: { unit: "PIXELS", value: 24 },
+            letterSpacing: { unit: "PERCENT", value: 0 }
+          }
+        }
+      },
+
+      classic: {
+        scales: {
+          "Heading": { baseSize: 18, factor: 1.333, anchor: "base" },
+          "Body": { baseSize: 16, factor: 1.2, anchor: "base" }
+        },
+        semantic: {
+          "Article/Title": {
+            fontSize: 32,
+            fontName: { family: "Inter", style: "Bold" },
+            lineHeight: { unit: "PERCENT", value: 125 },
+            letterSpacing: { unit: "PERCENT", value: -1 }
+          }
+        }
+      },
+
+      ui: {
+        scales: {
+          "Interface": { baseSize: 14, factor: 1.125, anchor: "base" }
+        },
+        semantic: {
+          "Button/Large": {
+            fontSize: 16,
+            fontName: { family: "Inter", style: "Medium" },
+            lineHeight: { unit: "PIXELS", value: 24 },
+            letterSpacing: { unit: "PERCENT", value: 0 }
+          },
+          "Button/Small": {
+            fontSize: 14,
+            fontName: { family: "Inter", style: "Medium" },
+            lineHeight: { unit: "PIXELS", value: 20 },
+            letterSpacing: { unit: "PERCENT", value: 0 }
+          },
+          "Label/Form": {
+            fontSize: 12,
+            fontName: { family: "Inter", style: "Medium" },
+            lineHeight: { unit: "PIXELS", value: 16 },
+            letterSpacing: { unit: "PERCENT", value: 0 }
+          }
+        }
+      },
+
+      editorial: {
+        scales: {
+          "Editorial": { baseSize: 18, factor: 1.25, anchor: "base" }
+        },
+        semantic: {
+          "Article/Headline": {
+            fontSize: 36,
+            fontName: { family: "Inter", style: "Bold" },
+            lineHeight: { unit: "PERCENT", value: 120 },
+            letterSpacing: { unit: "PERCENT", value: -1.5 }
+          },
+          "Article/Subhead": {
+            fontSize: 20,
+            fontName: { family: "Inter", style: "SemiBold" },
+            lineHeight: { unit: "PERCENT", value: 130 },
+            letterSpacing: { unit: "PERCENT", value: 0 }
+          },
+          "Article/Body": {
+            fontSize: 18,
+            fontName: { family: "Inter", style: "Regular" },
+            lineHeight: { unit: "PERCENT", value: 160 },
+            letterSpacing: { unit: "PERCENT", value: 0 }
+          }
+        }
+      }
+    };
+
+    const config = presets[msg.preset];
+    if (!config) {
+      throw new Error('Unknown typography preset: ' + msg.preset);
+    }
+
+    await $figma.typographySystem(config);
+    figma.notify('✅ Typography preset created: ' + msg.preset);
+  },
+
+  // NEW: Create typography system (for quick action button)
+  async createTypographySystem() {
+    console.log('Creating default typography system');
+    await this.createTypographyPreset({ preset: 'modern' });
   }
 };
 
@@ -402,6 +805,10 @@ const router = new Map([
   ['create-rectangle', handlers.createRectangle],
   ['get-selection', handlers.getSelection],
   ['create-custom-spacing', handlers.createCustomSpacing],
+  ['create-custom-typography', handlers.createCustomTypography], // NEW
+  ['create-text-style', handlers.createTextStyle], // NEW
+  ['create-typography-preset', handlers.createTypographyPreset], // NEW
+  ['create-typography-system', handlers.createTypographySystem], // NEW
   ['close', function() { figma.closePlugin(); }]
 ]);
 
