@@ -6,6 +6,9 @@ on:
 jobs:
   publish_plugin:
     runs-on: ubuntu-latest
+    env:
+      FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
+      PLUGIN_ID: ${{ secrets.PLUGIN_ID }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -15,9 +18,10 @@ jobs:
           cd src
           zip -r ../plugin.zip *
 
-      - name: Publish Figma Plugin
-        uses: thomas-lowry/figma-plugin-ci@v1.2.0
-        with:
-          figma-token: ${{ secrets.FIGMA_TOKEN }}
-          plugin-id: ${{ secrets.PLUGIN_ID }}
-          file-path: 'plugin.zip'
+      - name: Upload to Figma
+        run: |
+          curl -f -X POST \
+            -H "X-Figma-Token:${FIGMA_TOKEN}" \
+            -F "manifest=@src/manifest.json" \
+            -F "bundle=@plugin.zip" \
+            https://api.figma.com/v1/plugins/${PLUGIN_ID}/versions

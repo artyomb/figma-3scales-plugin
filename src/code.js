@@ -158,7 +158,7 @@ const $figma = {
     const parsed = this._parsePath(collectionPath);
     const collectionName = parsed.collection;
     const subfolder = parsed.folder;
-    const names = ["3xs", "2xs", "xs", "sm", "md", "lg", "xl", "2xl"];
+    const names = ["3xs", "2xs", "xs", "sm", "md", "lg", "xl", "2xl", "3xl"];
     const anchorIndex = names.indexOf(anchor);
     const values = names.map(function(name, i) {
       return base * Math.pow(factor, i - anchorIndex);
@@ -358,22 +358,41 @@ const handlers = {
       type: 'selection-update',
       selection: selection
     });
+  },
+
+  async createCustomSpacing(msg) {
+    console.log('Creating custom spacing system:', msg.path);
+    await $figma.spacingSystem(msg.path, msg.base, msg.factor, msg.anchor);
+    figma.notify('✅ Custom spacing system created');
   }
 };
 
-// Apply error handling
-Object.keys(handlers).forEach(function(key) {
-  const originalHandler = handlers[key];
-  handlers[key] = async function() {
-    const args = Array.prototype.slice.call(arguments);
+// Error handling decorator
+function withErrorHandling(handler, name) {
+  return async function(...args) {
     try {
-      return await originalHandler.apply(this, args);
+      return await handler.apply(this, args);
     } catch (error) {
-      console.error('Error in ' + key + ':', error);
+      console.error('Error in ' + name + ':', error);
       figma.notify('Error: ' + error.message, { error: true });
       throw error;
     }
   };
+}
+
+// Logging decorator
+function withLogging(handler, name) {
+  return async function(...args) {
+    console.log(`Executing ${name} with args:`, args);
+    const result = await handler.apply(this, args);
+    console.log(`Completed ${name}`);
+    return result;
+  };
+}
+
+// Apply decorators
+Object.keys(handlers).forEach(function(key) {
+  handlers[key] = withLogging(withErrorHandling(handlers[key], key), key);
 });
 
 // Router for message handling
@@ -382,6 +401,7 @@ const router = new Map([
   ['create-design-system', handlers.createDesignSystem],
   ['create-rectangle', handlers.createRectangle],
   ['get-selection', handlers.getSelection],
+  ['create-custom-spacing', handlers.createCustomSpacing],
   ['close', function() { figma.closePlugin(); }]
 ]);
 
