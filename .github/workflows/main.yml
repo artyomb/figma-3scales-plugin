@@ -8,20 +8,44 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
+      FIGMA_WEB_AUTHN_TOKEN: ${{ secrets.FIGMA_TOKEN }}
       PLUGIN_ID: ${{ secrets.PLUGIN_ID }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Package plugin files
-        run: |
-          cd src
-          zip -r ../plugin.zip *
-
       - name: Upload to Figma
         run: |
-          curl -f -X POST \
-            -H "X-Figma-Token:${FIGMA_TOKEN}" \
-            -F "manifest=@src/manifest.json" \
+          npm install -g figcd
+          ls -la
+          curl -sSf -X POST \
+            -H "X-FIGMA-TOKEN:${FIGMA_WEB_AUTHN_TOKEN}" \
+            -F "manifest=@manifest.json" \
             -F "bundle=@plugin.zip" \
-            https://api.figma.com/v1/plugins/${PLUGIN_ID}/versions
+            https://www.figma.com/api/plugins/${PLUGIN_ID}/versions
+
+      - uses: actions/checkout@v3
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Set next Figma version as minor version in package.js
+        run: |
+          cd src
+          npx figcd prepare
+
+      - name: Build plugin
+        run: |
+          cd src
+          npm run build
+
+      - name: Publish new Version to Figma
+        run: |
+          cd src
+          npx figcd release
